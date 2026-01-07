@@ -20,12 +20,25 @@ app = FastAPI(title="LLM Council API")
 # Enable CORS for local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "https://*.up.railway.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Serve built frontend in production
+static_dir = "/app/frontend/dist"
+if os.path.exists(static_dir):
+    @app.get("/")
+    async def serve_frontend():
+        return FileResponse(f"{static_dir}/index.html")
+    
+    @app.get("/{path:path}")
+    async def serve_static(path: str):
+        file_path = f"{static_dir}/{path}"
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(f"{static_dir}/index.html")
 
 class CreateConversationRequest(BaseModel):
     """Request to create a new conversation."""
