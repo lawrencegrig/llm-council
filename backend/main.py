@@ -26,19 +26,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve built frontend in production
-static_dir = "/app/frontend/dist"
-if os.path.exists(static_dir):
-    @app.get("/")
-    async def serve_frontend():
-        return FileResponse(f"{static_dir}/index.html")
-    
-    @app.get("/{path:path}")
-    async def serve_static(path: str):
-        file_path = f"{static_dir}/{path}"
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
-        return FileResponse(f"{static_dir}/index.html")
 
 class CreateConversationRequest(BaseModel):
     """Request to create a new conversation."""
@@ -66,8 +53,8 @@ class Conversation(BaseModel):
     messages: List[Dict[str, Any]]
 
 
-@app.get("/")
-async def root():
+@app.get("/api/health")
+async def health():
     """Health check endpoint."""
     return {"status": "ok", "service": "LLM Council API"}
 
@@ -208,6 +195,23 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
             "Connection": "keep-alive",
         }
     )
+
+
+# === STATIC FILE SERVING (MUST BE LAST) ===
+static_dir = "/app/frontend/dist"
+if os.path.exists(static_dir):
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(f"{static_dir}/index.html")
+    
+    app.mount("/assets", StaticFiles(directory=f"{static_dir}/assets"), name="static")
+    
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        file_path = f"{static_dir}/{full_path}"
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(f"{static_dir}/index.html")
 
 
 if __name__ == "__main__":
