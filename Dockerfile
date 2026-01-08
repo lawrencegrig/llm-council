@@ -17,7 +17,7 @@ RUN pip install uv
 COPY . .
 
 # Install Python dependencies
-RUN uv sync --frozen
+RUN uv sync --frozen && uv pip install python-multipart
 
 # Build frontend
 WORKDIR /app/frontend
